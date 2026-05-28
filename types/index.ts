@@ -71,6 +71,51 @@ export interface Reservation {
   user?: User
 }
 
+export interface LibrarySettings {
+  id: number
+  fine_rate_per_day: number
+  default_loan_days: number
+  updated_at: string | null
+  updated_by: string | null
+}
+
+export type FineStatus = 'assessed' | 'paid' | 'waived'
+
+export interface Fine {
+  id: string
+  loan_id: string
+  user_id: string
+  book_id: string
+  amount: number
+  days_overdue: number
+  status: FineStatus
+  assessed_at: string
+  paid_at?: string | null
+  created_at?: string
+  loan?: Loan
+  book?: Book
+  user?: User
+}
+
+export interface ReportMetrics {
+  loansCount: number
+  overdueCount: number
+  availableBooks: number
+  totalBooks: number
+  totalFinesCollected: number
+  popularBooks: { title: string; count: number }[]
+}
+
+export interface ReportSnapshot {
+  id: string
+  report_type: string
+  period_start: string
+  period_end: string
+  metrics: ReportMetrics
+  generated_at: string
+  generated_by?: string | null
+}
+
 export interface SearchResult extends Pick<Book, 'id' | 'title' | 'author' | 'description'> {
   similarity: number
 }

@@ -1,4 +1,4 @@
-export const FINE_RATE_PER_DAY = 0.5 // RM 0.50 per day overdue
+export const FINE_RATE_PER_DAY = 0.5 // fallback when settings table unavailable
 
 export function getDaysOverdue(
   dueDate: string | Date,
@@ -10,17 +10,24 @@ export function getDaysOverdue(
   return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 }
 
-export function calculateFine(dueDate: string | Date, returnedAt?: string | Date): number {
+export function calculateFine(
+  dueDate: string | Date,
+  returnedAt?: string | Date,
+  ratePerDay: number = FINE_RATE_PER_DAY
+): number {
   const daysOverdue = getDaysOverdue(dueDate, returnedAt ? new Date(returnedAt) : new Date())
-  return daysOverdue * FINE_RATE_PER_DAY
+  return daysOverdue * ratePerDay
 }
 
 /** Human-readable overdue fine line for UI */
-export function formatOverdueFineLabel(dueDate: string | Date): string {
+export function formatOverdueFineLabel(
+  dueDate: string | Date,
+  ratePerDay: number = FINE_RATE_PER_DAY
+): string {
   const days = getDaysOverdue(dueDate)
   if (days <= 0) return ''
-  const amount = calculateFine(dueDate)
-  return `${days} day${days === 1 ? '' : 's'} overdue · ${formatCurrency(amount)} (RM ${FINE_RATE_PER_DAY.toFixed(2)}/day)`
+  const amount = calculateFine(dueDate, undefined, ratePerDay)
+  return `${days} day${days === 1 ? '' : 's'} overdue · ${formatCurrency(amount)} (RM ${ratePerDay.toFixed(2)}/day)`
 }
 
 export function formatCurrency(amount: number): string {

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatCurrency, calculateFine } from '@/lib/utils/fines'
+import { getLibrarySettings } from '@/lib/library/settings'
 import { formatDate, isDueSoon, isOverdue } from '@/lib/utils/dates'
 import { isActiveLoan, isPendingLoan } from '@/lib/loans/status'
 import type { Loan } from '@/types'
@@ -15,6 +16,7 @@ export default async function StudentDashboardPage() {
   if (!user) return null
 
   const supabase = await createClient()
+  const settings = await getLibrarySettings()
 
   const [
     { data: loans },
@@ -41,7 +43,10 @@ export default async function StudentDashboardPage() {
   const pendingLoans = allLoans.filter(isPendingLoan)
   const dueSoon = activeLoans.filter((l) => l.due_date && isDueSoon(l.due_date))
   const overdue = activeLoans.filter((l) => l.due_date && isOverdue(l.due_date))
-  const finesOwed = overdue.reduce((sum, l) => sum + calculateFine(l.due_date!), 0)
+  const finesOwed = overdue.reduce(
+    (sum, l) => sum + calculateFine(l.due_date!, undefined, settings.fine_rate_per_day),
+    0
+  )
   const readyReservations = (reservations ?? []).filter((r) => r.status === 'ready')
 
   return (
@@ -142,7 +147,7 @@ export default async function StudentDashboardPage() {
                     <>
                       <Badge variant="destructive">Overdue</Badge>
                       <span className="text-destructive text-xs font-medium">
-                        {formatCurrency(calculateFine(loan.due_date))}
+                        {formatCurrency(calculateFine(loan.due_date, undefined, settings.fine_rate_per_day))}
                       </span>
                     </>
                   )}

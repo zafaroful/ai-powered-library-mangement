@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getLibrarySettings } from '@/lib/library/settings'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LoanCard } from '@/components/borrow/LoanCard'
@@ -11,6 +12,7 @@ export default async function AdminUserDetailPage({
 }) {
   const { id } = await params
   const supabase = await createClient()
+  const settings = await getLibrarySettings()
 
   const { data: user } = await supabase
     .from('users')
@@ -44,7 +46,12 @@ export default async function AdminUserDetailPage({
         <h2 className="text-lg font-medium">Recent Loans</h2>
         <div className="grid gap-4 md:grid-cols-2">
           {(loans ?? []).map((loan) => (
-            <LoanCard key={loan.id} loan={loan} />
+            <LoanCard
+              key={loan.id}
+              loan={loan}
+              fineRatePerDay={settings.fine_rate_per_day}
+              defaultLoanDays={settings.default_loan_days}
+            />
           ))}
           {(!loans || loans.length === 0) && (
             <p className="text-sm text-muted-foreground">No loan history.</p>

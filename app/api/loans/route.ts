@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getDueDate } from '@/lib/utils/dates'
+import { getLibrarySettings } from '@/lib/library/settings'
 import { formatSupabaseError } from '@/lib/utils/supabase-errors'
 import { getSessionUser } from '@/lib/auth/server'
 
@@ -61,6 +62,7 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date()
+  const settings = await getLibrarySettings()
 
   if (isAdminIssue) {
     const { data: loan, error } = await supabase
@@ -70,7 +72,7 @@ export async function POST(req: NextRequest) {
         book_id,
         status: 'active',
         borrowed_at: now.toISOString(),
-        due_date: getDueDate(now).toISOString(),
+        due_date: getDueDate(now, settings.default_loan_days).toISOString(),
       })
       .select('*, book:books(*)')
       .single()

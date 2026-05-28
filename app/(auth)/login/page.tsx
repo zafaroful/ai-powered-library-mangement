@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { BookOpen } from 'lucide-react'
+import { APP_NAME } from '@/lib/constants/brand'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -41,7 +42,7 @@ export default function LoginPage() {
       router.push('/student')
     } else {
       setError(
-        'Signed in, but no library profile found. Ask an admin to add your account in the users table with role admin.'
+        'Signed in, but no Read Nest profile found. Ask an admin to add your account in the users table with role admin.'
       )
       setLoading(false)
       return
@@ -56,7 +57,7 @@ export default function LoginPage() {
         <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <BookOpen className="size-6" />
         </div>
-        <CardTitle className="text-2xl font-semibold">Library System</CardTitle>
+        <CardTitle className="text-2xl font-semibold">{APP_NAME}</CardTitle>
         <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>

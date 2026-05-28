@@ -1,4 +1,4 @@
-# AGENT.md — AI-Powered Library System
+# AGENT.md — Read Nest
 
 This file is the single source of truth for any AI agent (Claude Code, Copilot, Cursor, etc.) working on this codebase. Read it fully before making changes.
 
@@ -273,7 +273,55 @@ create extension if not exists vector;
 -- 003_add_embeddings.sql
 alter table books add column embedding vector(1536);
 create index on books using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+
+-- 012_book_media_and_slug.sql
+create table book_chunks ( ... );  -- RAG chunks for book PDF chat
 ```
+
+**Supabase `public` tables (after all migrations):** `users`, `books`, `loans`, `reservations`, `book_chunks`, `settings`, `fines`, `reports`.
+
+### `settings`, `fines`, `reports` (015_settings_fines_reports.sql)
+
+```sql
+-- Singleton library config (admin-editable on /admin/settings)
+create table settings (
+  id int primary key default 1 check (id = 1),
+  fine_rate_per_day numeric(8,2) not null default 0.50,
+  default_loan_days int not null default 14,
+  updated_at timestamptz,
+  updated_by uuid references users(id)
+);
+
+-- Assessed fine per loan (inserted on return; backfilled from loans.fine_amount)
+create table fines (
+  loan_id uuid unique references loans(id),
+  user_id uuid references users(id),
+  book_id uuid references books(id),
+  amount numeric(8,2),
+  days_overdue int,
+  status text check (status in ('assessed', 'paid', 'waived')),
+  assessed_at timestamptz
+);
+
+-- Report snapshots (upserted when admin opens /admin/reports)
+create table reports (
+  report_type text,
+  period_start date,
+  period_end date,
+  metrics jsonb,
+  generated_at timestamptz,
+  generated_by uuid references users(id)
+);
+```
+
+| UI route | Tables / helpers |
+|----------|------------------|
+| `/admin/fines`, `/student/fines` | `fines` for collected; active overdue still computed via `lib/utils/fines.ts` + `settings.fine_rate_per_day` |
+| `/admin/reports` | Computes metrics, upserts `reports` via `lib/library/reports.ts` |
+| `/admin/settings` | `settings` (library config) + `users` / Auth (profile) |
+| `/student/settings` | `users` profile + Auth only |
+
+Return flow: `POST /api/loans/[id]/return` inserts into `fines` and syncs `loans.fine_amount`. Loan due dates use `settings.default_loan_days` via `getLibrarySettings()`.
 
 ---
 
@@ -287,10 +335,10 @@ create index on books using ivfflat (embedding vector_cosine_ops) with (lists = 
 | User management | ✓ list/manage students | own profile | `(admin)/users/` |
 | Borrow approval | ✓ approve/reject pending | submit request only | `(admin)/loans/` Pending tab |
 | Borrow / return | ✓ direct issue + all returns | own loans | `POST /api/loans`, `PATCH /api/loans/[id]` |
-| Fine calculation | view all | view own | `lib/utils/fines.ts` — RM 0.50/day overdue |
+| Fine calculation | view all | view own | `fines` table + `lib/utils/fines.ts`; rate from `settings` |
 | Reservations | manage queue | reserve & view own | respective route groups |
 | Search (keyword) | ✓ | ✓ | Supabase `ilike` fallback on books pages |
-| Reports & analytics | ✓ | — | `(admin)/reports/` only |
+| Reports & analytics | ✓ | — | `(admin)/reports/` — snapshots in `reports` table |
 
 Auth: Supabase Auth + `users.role`. Registration creates **student** by default; **admin** accounts are seeded or promoted in DB.
 

@@ -1,4 +1,4 @@
-# AI-Powered Library Management System
+# Read Nest
 
 A final-year-project library management system built with Next.js, Supabase, and OpenAI.
 
@@ -60,7 +60,10 @@ supabase/migrations/011_search_match_books_grant.sql
 supabase/migrations/012_book_media_and_slug.sql
 supabase/migrations/013_storage_policies.sql
 supabase/migrations/014_user_interests.sql
+supabase/migrations/015_settings_fines_reports.sql
 ```
+
+After migrations, the `public` schema has eight tables: `users`, `books`, `loans`, `reservations`, `book_chunks`, `settings`, `fines`, `reports`. Library-wide config (fine rate, loan period) lives in `settings`; assessed fines in `fines`; report snapshots in `reports`. See [AGENTS.md](./AGENTS.md).
 
 ### 4. Storage buckets
 

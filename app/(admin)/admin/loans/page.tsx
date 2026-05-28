@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getLibrarySettings } from '@/lib/library/settings'
 import { LoanCard } from '@/components/borrow/LoanCard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { isOverdue } from '@/lib/utils/dates'
@@ -7,6 +8,7 @@ import type { Loan } from '@/types'
 
 export default async function AdminLoansPage() {
   const supabase = await createClient()
+  const settings = await getLibrarySettings()
   const { data: loans, error } = await supabase
     .from('loans')
     .select('*, book:books(*), user:users(*)')
@@ -42,22 +44,53 @@ export default async function AdminLoansPage() {
         </TabsList>
         <TabsContent value="pending" className="grid gap-4 md:grid-cols-2 mt-4">
           {pending.map((loan) => (
-            <LoanCard key={loan.id} loan={loan} showUser showApprovalActions />
+            <LoanCard
+              key={loan.id}
+              loan={loan}
+              showUser
+              showApprovalActions
+              fineRatePerDay={settings.fine_rate_per_day}
+              defaultLoanDays={settings.default_loan_days}
+            />
           ))}
           {pending.length === 0 && (
             <p className="text-sm text-muted-foreground">No pending borrow requests.</p>
           )}
         </TabsContent>
         <TabsContent value="active" className="grid gap-4 md:grid-cols-2 mt-4">
-          {active.map((loan) => <LoanCard key={loan.id} loan={loan} showUser />)}
+          {active.map((loan) => (
+            <LoanCard
+              key={loan.id}
+              loan={loan}
+              showUser
+              fineRatePerDay={settings.fine_rate_per_day}
+              defaultLoanDays={settings.default_loan_days}
+            />
+          ))}
           {active.length === 0 && <p className="text-sm text-muted-foreground">No active loans.</p>}
         </TabsContent>
         <TabsContent value="overdue" className="grid gap-4 md:grid-cols-2 mt-4">
-          {overdue.map((loan) => <LoanCard key={loan.id} loan={loan} showUser />)}
+          {overdue.map((loan) => (
+            <LoanCard
+              key={loan.id}
+              loan={loan}
+              showUser
+              fineRatePerDay={settings.fine_rate_per_day}
+              defaultLoanDays={settings.default_loan_days}
+            />
+          ))}
           {overdue.length === 0 && <p className="text-sm text-muted-foreground">No overdue loans.</p>}
         </TabsContent>
         <TabsContent value="returned" className="grid gap-4 md:grid-cols-2 mt-4">
-          {returned.map((loan) => <LoanCard key={loan.id} loan={loan} showUser />)}
+          {returned.map((loan) => (
+            <LoanCard
+              key={loan.id}
+              loan={loan}
+              showUser
+              fineRatePerDay={settings.fine_rate_per_day}
+              defaultLoanDays={settings.default_loan_days}
+            />
+          ))}
         </TabsContent>
       </Tabs>
     </div>

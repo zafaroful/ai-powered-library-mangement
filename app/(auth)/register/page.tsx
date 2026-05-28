@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { APP_NAME } from '@/lib/constants/brand'
 
 function formatAuthError(message: string): string {
   if (message.toLowerCase().includes('rate limit')) {
@@ -82,7 +83,7 @@ export default function RegisterPage() {
     <Card>
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-semibold">Create Account</CardTitle>
-        <CardDescription>Register as a library student member</CardDescription>
+        <CardDescription>Register as a {APP_NAME} student member</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">

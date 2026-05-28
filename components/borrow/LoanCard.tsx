@@ -1,8 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { formatDate, isOverdue, isDueSoon } from '@/lib/utils/dates'
+import { formatDate, isOverdue, isDueSoon, DEFAULT_LOAN_DAYS, getDueDate } from '@/lib/utils/dates'
 import { formatCurrency, formatOverdueFineLabel, FINE_RATE_PER_DAY } from '@/lib/utils/fines'
-import { DEFAULT_LOAN_DAYS, getDueDate } from '@/lib/utils/dates'
 import { isActiveLoan, isPendingLoan, isRejectedLoan } from '@/lib/loans/status'
 import type { Loan } from '@/types'
 import { ReturnLoanButton } from './ReturnLoanButton'
@@ -12,10 +11,14 @@ export function LoanCard({
   loan,
   showUser = false,
   showApprovalActions = false,
+  fineRatePerDay = FINE_RATE_PER_DAY,
+  defaultLoanDays = DEFAULT_LOAN_DAYS,
 }: {
   loan: Loan
   showUser?: boolean
   showApprovalActions?: boolean
+  fineRatePerDay?: number
+  defaultLoanDays?: number
 }) {
   const pending = isPendingLoan(loan)
   const rejected = isRejectedLoan(loan)
@@ -55,7 +58,8 @@ export function LoanCard({
             <>
               <p>Requested — awaiting admin approval</p>
               <p className="text-muted-foreground">
-                If approved today: {DEFAULT_LOAN_DAYS}-day loan · due {formatDate(getDueDate())}
+                If approved today: {defaultLoanDays}-day loan · due{' '}
+                {formatDate(getDueDate(new Date(), defaultLoanDays))}
               </p>
             </>
           ) : rejected ? (
@@ -72,7 +76,7 @@ export function LoanCard({
           )}
           {overdue && loan.due_date && (
             <p className="text-destructive font-medium">
-              {formatOverdueFineLabel(loan.due_date)}
+              {formatOverdueFineLabel(loan.due_date, fineRatePerDay)}
             </p>
           )}
           {loan.returned_at && loan.fine_amount > 0 && (
@@ -80,7 +84,7 @@ export function LoanCard({
           )}
           {active && !overdue && loan.due_date && (
             <p className="text-muted-foreground">
-              Fine if returned late: RM {FINE_RATE_PER_DAY.toFixed(2)}/day after due date
+              Fine if returned late: RM {fineRatePerDay.toFixed(2)}/day after due date
             </p>
           )}
         </div>

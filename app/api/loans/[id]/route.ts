@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getDueDate } from '@/lib/utils/dates'
+import { getLibrarySettings } from '@/lib/library/settings'
 import { requireRole } from '@/lib/auth/server'
 import type { LoanApprovalStatus } from '@/types'
 
@@ -33,12 +34,13 @@ export async function PATCH(
 
   if (status === 'active') {
     const now = new Date()
+    const settings = await getLibrarySettings()
     const { data, error } = await supabase
       .from('loans')
       .update({
         status: 'active',
         borrowed_at: now.toISOString(),
-        due_date: getDueDate(now).toISOString(),
+        due_date: getDueDate(now, settings.default_loan_days).toISOString(),
       })
       .eq('id', id)
       .select('*, book:books(*), user:users(*)')

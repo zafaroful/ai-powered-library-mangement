@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { createClient } from '@/lib/supabase/client'
+import { APP_NAME } from '@/lib/constants/brand'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -47,7 +48,7 @@ export function AdminSidebar() {
         <div className="flex size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
           <BookOpen className="size-4" />
         </div>
-        <span className="font-semibold text-sm">Library Admin</span>
+        <span className="font-semibold text-sm">{APP_NAME}</span>
       </div>
       <Separator />
       <nav className="flex-1 space-y-1 p-2">

@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
+import { APP_NAME } from '@/lib/constants/brand'
 
 const navItems = [
   { href: '/student', label: 'Home', icon: Home },
@@ -41,7 +42,7 @@ export function StudentNavbar() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <Link href="/student" className="flex items-center gap-2 font-semibold">
           <BookOpen className="size-5 text-primary" />
-          <span>Library</span>
+          <span>{APP_NAME}</span>
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
           {navItems.map(({ href, label, icon: Icon }) => {

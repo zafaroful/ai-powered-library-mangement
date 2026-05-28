@@ -2,9 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import {
   formatCurrency,
   calculateFine,
-  FINE_RATE_PER_DAY,
   getDaysOverdue,
 } from '@/lib/utils/fines'
+import { getLibrarySettings } from '@/lib/library/settings'
 import { formatDate, isOverdue } from '@/lib/utils/dates'
 import { isActiveLoan } from '@/lib/loans/status'
 import { Badge } from '@/components/ui/badge'
@@ -17,36 +17,39 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { Loan } from '@/types'
+import type { Fine, Loan } from '@/types'
 
 export default async function AdminFinesPage() {
   const supabase = await createClient()
-  const { data: loans } = await supabase
-    .from('loans')
-    .select('*, book:books(*), user:users(*)')
-    .order('returned_at', { ascending: false })
+  const settings = await getLibrarySettings()
+  const rate = settings.fine_rate_per_day
+
+  const [{ data: loans }, { data: finesRows }] = await Promise.all([
+    supabase.from('loans').select('*, book:books(*), user:users(*)').order('returned_at', { ascending: false }),
+    supabase
+      .from('fines')
+      .select('*, book:books(*), user:users(*), loan:loans(due_date, returned_at)')
+      .order('assessed_at', { ascending: false }),
+  ])
 
   const allLoans = (loans ?? []) as Loan[]
+  const collectedFines = (finesRows ?? []) as Fine[]
   const activeOverdue = allLoans.filter(
     (l) => isActiveLoan(l) && l.due_date && isOverdue(l.due_date)
   )
-  const returnedWithFines = allLoans.filter((l) => l.returned_at && l.fine_amount > 0)
 
   const accruedFines = activeOverdue.reduce(
-    (sum, l) => sum + calculateFine(l.due_date!),
+    (sum, l) => sum + calculateFine(l.due_date!, undefined, rate),
     0
   )
-  const collectedFines = returnedWithFines.reduce(
-    (sum, l) => sum + Number(l.fine_amount),
-    0
-  )
+  const collectedTotal = collectedFines.reduce((sum, f) => sum + Number(f.amount), 0)
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Fines</h1>
         <p className="text-sm text-muted-foreground">
-          Overdue rate: RM {FINE_RATE_PER_DAY.toFixed(2)} per day after due date
+          Overdue rate: RM {rate.toFixed(2)} per day after due date
         </p>
       </div>
 
@@ -69,9 +72,9 @@ export default async function AdminFinesPage() {
             <CardTitle className="text-lg">Collected (on return)</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold">{formatCurrency(collectedFines)}</p>
+            <p className="text-2xl font-semibold">{formatCurrency(collectedTotal)}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {returnedWithFines.length} returned with fines
+              {collectedFines.length} assessed fine{collectedFines.length === 1 ? '' : 's'}
             </p>
           </CardContent>
         </Card>
@@ -103,7 +106,7 @@ export default async function AdminFinesPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-medium text-destructive">
-                      {formatCurrency(calculateFine(loan.due_date!))}
+                      {formatCurrency(calculateFine(loan.due_date!, undefined, rate))}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -122,27 +125,29 @@ export default async function AdminFinesPage() {
                 <TableHead>Student</TableHead>
                 <TableHead>Book</TableHead>
                 <TableHead>Due date</TableHead>
-                <TableHead>Returned</TableHead>
+                <TableHead>Assessed</TableHead>
                 <TableHead className="text-right">Fine</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {returnedWithFines.map((loan) => (
-                <TableRow key={loan.id}>
-                  <TableCell>{loan.user?.full_name}</TableCell>
-                  <TableCell>{loan.book?.title}</TableCell>
-                  <TableCell>
-                    {loan.due_date ? formatDate(loan.due_date) : '—'}
-                  </TableCell>
-                  <TableCell>
-                    {loan.returned_at ? formatDate(loan.returned_at) : '—'}
-                  </TableCell>
-                  <TableCell className="text-right font-medium text-destructive">
-                    {formatCurrency(loan.fine_amount)}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {returnedWithFines.length === 0 && (
+              {collectedFines.map((fine) => {
+                const loanData = fine.loan
+                const loan = Array.isArray(loanData) ? loanData[0] : loanData
+                return (
+                  <TableRow key={fine.id}>
+                    <TableCell>{fine.user?.full_name}</TableCell>
+                    <TableCell>{fine.book?.title}</TableCell>
+                    <TableCell>
+                      {loan?.due_date ? formatDate(loan.due_date) : '—'}
+                    </TableCell>
+                    <TableCell>{formatDate(fine.assessed_at)}</TableCell>
+                    <TableCell className="text-right font-medium text-destructive">
+                      {formatCurrency(fine.amount)}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+              {collectedFines.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     No collected fines yet.

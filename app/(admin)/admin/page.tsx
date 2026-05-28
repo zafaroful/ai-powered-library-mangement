@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, calculateFine } from '@/lib/utils/fines'
+import { getLibrarySettings } from '@/lib/library/settings'
 import { formatDate } from '@/lib/utils/dates'
 import { isOverdue } from '@/lib/utils/dates'
 import {
@@ -15,6 +16,7 @@ import {
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
+  const settings = await getLibrarySettings()
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -34,7 +36,7 @@ export default async function AdminDashboardPage() {
   const overdue = (activeLoans ?? []).filter((l) => l.due_date && isOverdue(l.due_date))
   const loansToday = allLoans?.length ?? 0
   const totalFines = overdue.reduce(
-    (sum, l) => sum + calculateFine(l.due_date!),
+    (sum, l) => sum + calculateFine(l.due_date!, undefined, settings.fine_rate_per_day),
     0
   )
 
@@ -85,7 +87,7 @@ export default async function AdminDashboardPage() {
                 <span className="text-destructive text-right shrink-0">
                   Due {loan.due_date ? formatDate(loan.due_date) : '—'}
                   {loan.due_date && (
-                    <> · {formatCurrency(calculateFine(loan.due_date))}</>
+                    <> · {formatCurrency(calculateFine(loan.due_date, undefined, settings.fine_rate_per_day))}</>
                   )}
                 </span>
               </div>

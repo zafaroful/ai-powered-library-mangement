@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { calculateFine } from '@/lib/utils/fines'
+import { calculateFine, getDaysOverdue } from '@/lib/utils/fines'
+import { getLibrarySettings } from '@/lib/library/settings'
 import { getSessionUser } from '@/lib/auth/server'
 
 export async function POST(
@@ -11,6 +12,7 @@ export async function POST(
 
   const { id } = await params
   const supabase = createAdminClient()
+  const settings = await getLibrarySettings()
 
   const { data: loan } = await supabase
     .from('loans')
@@ -30,8 +32,9 @@ export async function POST(
 
   const returnedAt = new Date().toISOString()
   const fineAmount = loan.due_date
-    ? calculateFine(loan.due_date, returnedAt)
+    ? calculateFine(loan.due_date, returnedAt, settings.fine_rate_per_day)
     : 0
+  const daysOverdue = loan.due_date ? getDaysOverdue(loan.due_date, new Date(returnedAt)) : 0
 
   const { data: updated, error } = await supabase
     .from('loans')
@@ -41,6 +44,21 @@ export async function POST(
     .single()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
+
+  if (fineAmount > 0) {
+    await supabase.from('fines').upsert(
+      {
+        loan_id: id,
+        user_id: loan.user_id,
+        book_id: loan.book_id,
+        amount: fineAmount,
+        days_overdue: daysOverdue,
+        status: 'assessed',
+        assessed_at: returnedAt,
+      },
+      { onConflict: 'loan_id' }
+    )
+  }
 
   if (loan.book) {
     await supabase
