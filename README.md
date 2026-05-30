@@ -119,8 +119,15 @@ Create the empty repository on [GitHub](https://github.com/new) first (do not in
 ### 2. Host on Vercel (recommended for Next.js)
 
 1. Import the GitHub repo at [vercel.com/new](https://vercel.com/new).
-2. Add environment variables from `.env.local.example`.
+2. In **Project → Settings → Environment Variables**, add every variable from `.env.local.example` for **Production** (and Preview if needed):
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `OPENAI_API_KEY`
 3. Deploy. Vercel runs `npm run build` on each push to `main`.
+4. After changing env vars, **Redeploy** so middleware and API routes pick them up.
+
+If you see `MIDDLEWARE_INVOCATION_FAILED`, the usual cause is missing `NEXT_PUBLIC_*` Supabase variables on Vercel (local `.env` is not uploaded).
 
 ### 3. CI on GitHub
 

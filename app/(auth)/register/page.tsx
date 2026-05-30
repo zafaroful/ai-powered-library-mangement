@@ -10,6 +10,11 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { APP_NAME } from '@/lib/constants/brand'
+import {
+  MIN_PASSWORD_LENGTH,
+  validatePassword,
+  validatePasswordConfirmation,
+} from '@/lib/auth/password'
 
 function formatAuthError(message: string): string {
   if (message.toLowerCase().includes('rate limit')) {
@@ -27,6 +32,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('')
   const [matricNo, setMatricNo] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -34,6 +40,20 @@ export default function RegisterPage() {
     e.preventDefault()
     setError(null)
     setLoading(true)
+
+    const passwordError = validatePassword(password)
+    if (passwordError) {
+      setError(passwordError)
+      setLoading(false)
+      return
+    }
+
+    const confirmError = validatePasswordConfirmation(password, confirmPassword)
+    if (confirmError) {
+      setError(confirmError)
+      setLoading(false)
+      return
+    }
 
     try {
       // Prefer server registration (no confirmation email → no rate limit)
@@ -43,6 +63,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           email,
           password,
+          confirm_password: confirmPassword,
           full_name: fullName,
           matric_no: matricNo || null,
         }),
@@ -127,7 +148,23 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={MIN_PASSWORD_LENGTH}
+              autoComplete="new-password"
+            />
+            <p className="text-xs text-muted-foreground">
+              At least {MIN_PASSWORD_LENGTH} characters
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={MIN_PASSWORD_LENGTH}
+              autoComplete="new-password"
             />
           </div>
         </CardContent>

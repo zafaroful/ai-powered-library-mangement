@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { ThemeSwitcher } from '@/components/settings/ThemeSwitcher'
+import { validatePassword, validatePasswordConfirmation } from '@/lib/auth/password'
 import { cn } from '@/lib/utils'
 
 interface SettingsFormProps {
@@ -92,14 +93,16 @@ export function SettingsForm({ user, showMatric = user.role === 'student', onPro
     setPasswordError(null)
     setPasswordMessage(null)
 
-    if (newPassword.length < 6) {
-      setPasswordError('New password must be at least 6 characters.')
+    const passwordError = validatePassword(newPassword)
+    if (passwordError) {
+      setPasswordError(passwordError)
       setPasswordSaving(false)
       return
     }
 
-    if (newPassword !== confirmPassword) {
-      setPasswordError('New passwords do not match.')
+    const confirmError = validatePasswordConfirmation(newPassword, confirmPassword)
+    if (confirmError) {
+      setPasswordError(confirmError)
       setPasswordSaving(false)
       return
     }

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { validatePassword, validatePasswordConfirmation } from '@/lib/auth/password'
 
 /**
  * Server-side registration — creates a confirmed user without sending auth emails.
@@ -7,20 +8,23 @@ import { createAdminClient } from '@/lib/supabase/admin'
  */
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, full_name, matric_no } = await req.json()
+    const { email, password, confirm_password, full_name, matric_no } = await req.json()
 
-    if (!email || !password || !full_name) {
+    if (!email || !password || !confirm_password || !full_name) {
       return Response.json(
-        { error: 'Email, password, and full name are required.' },
+        { error: 'Email, password, confirm password, and full name are required.' },
         { status: 400 }
       )
     }
 
-    if (password.length < 6) {
-      return Response.json(
-        { error: 'Password must be at least 6 characters.' },
-        { status: 400 }
-      )
+    const passwordError = validatePassword(password)
+    if (passwordError) {
+      return Response.json({ error: passwordError }, { status: 400 })
+    }
+
+    const confirmError = validatePasswordConfirmation(password, confirm_password)
+    if (confirmError) {
+      return Response.json({ error: confirmError }, { status: 400 })
     }
 
     const supabase = createAdminClient()

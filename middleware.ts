@@ -1,15 +1,27 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { getRoleForUser, homePathForRole } from '@/lib/auth/role'
-import { getSupabaseAnonKey, getSupabaseUrl } from '@/lib/supabase/env'
+import { getMiddlewareSupabaseEnv } from '@/lib/supabase/middleware-env'
 
 export async function middleware(req: NextRequest) {
+  const path = req.nextUrl.pathname
+  const isAuthRoute = path.startsWith('/login') || path.startsWith('/register')
+  const isAdminRoute = path.startsWith('/admin')
+  const isStudentRoute = path.startsWith('/student')
+  const isProtectedRoute = isAdminRoute || isStudentRoute
+
+  const env = getMiddlewareSupabaseEnv()
+  if (!env) {
+    if (isProtectedRoute) {
+      return NextResponse.redirect(new URL('/login', req.url))
+    }
+    return NextResponse.next({ request: req })
+  }
+
   let res = NextResponse.next({ request: req })
 
-  const supabase = createServerClient(
-    getSupabaseUrl(),
-    getSupabaseAnonKey(),
-    {
+  try {
+    const supabase = createServerClient(env.url, env.anonKey, {
       cookies: {
         getAll() {
           return req.cookies.getAll()
@@ -22,32 +34,42 @@ export async function middleware(req: NextRequest) {
           )
         },
       },
+    })
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user && isProtectedRoute) {
+      return NextResponse.redirect(new URL('/login', req.url))
     }
-  )
 
-  const { data: { session } } = await supabase.auth.getSession()
-  const path = req.nextUrl.pathname
+    if (user && (isProtectedRoute || isAuthRoute)) {
+      const role = await getRoleForUser(supabase, user.id, user.email)
+      const home = homePathForRole(role)
 
-  const isAuthRoute = path.startsWith('/login') || path.startsWith('/register')
-  const isAdminRoute = path.startsWith('/admin')
-  const isStudentRoute = path.startsWith('/student')
+      if (isAuthRoute) return NextResponse.redirect(new URL(home, req.url))
+      if (role === 'admin' && isStudentRoute) {
+        return NextResponse.redirect(new URL('/admin', req.url))
+      }
+      if (role === 'student' && isAdminRoute) {
+        return NextResponse.redirect(new URL('/student', req.url))
+      }
+    }
 
-  if (!session && (isAdminRoute || isStudentRoute)) {
-    return NextResponse.redirect(new URL('/login', req.url))
+    return res
+  } catch (err) {
+    console.error('[middleware]', err)
+    if (isProtectedRoute) {
+      return NextResponse.redirect(new URL('/login', req.url))
+    }
+    return NextResponse.next({ request: req })
   }
-
-  if (session && (isAdminRoute || isStudentRoute || isAuthRoute)) {
-    const role = await getRoleForUser(supabase, session.user.id, session.user.email)
-    const home = homePathForRole(role)
-
-    if (isAuthRoute) return NextResponse.redirect(new URL(home, req.url))
-    if (role === 'admin' && isStudentRoute) return NextResponse.redirect(new URL('/admin', req.url))
-    if (role === 'student' && isAdminRoute) return NextResponse.redirect(new URL('/student', req.url))
-  }
-
-  return res
 }
 
 export const config = {
   matcher: ['/((?!api|_next|favicon.ico|.*\\..*).*)'],
 }
+
+/** Next.js 16+ alias — same handler as `middleware` */
+export { middleware as proxy }

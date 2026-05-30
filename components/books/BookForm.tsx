@@ -195,12 +195,14 @@ export function BookForm({ book, mode = 'create' }: BookFormProps) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Cover image</Label>
+              <Label htmlFor="cover-file">Cover image</Label>
               <input
+                id="cover-file"
                 ref={coverInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 className="hidden"
+                aria-label="Cover image"
                 onChange={handleCoverChange}
               />
               <Button
@@ -222,12 +224,14 @@ export function BookForm({ book, mode = 'create' }: BookFormProps) {
               )}
             </div>
             <div className="space-y-2">
-              <Label>Book PDF</Label>
+              <Label htmlFor="pdf-file">Book PDF</Label>
               <input
+                id="pdf-file"
                 ref={pdfInputRef}
                 type="file"
                 accept="application/pdf"
                 className="hidden"
+                aria-label="Book PDF"
                 onChange={handlePdfChange}
               />
               <Button

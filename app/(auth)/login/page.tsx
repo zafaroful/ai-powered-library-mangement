@@ -11,6 +11,18 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { BookOpen } from 'lucide-react'
 import { APP_NAME } from '@/lib/constants/brand'
+import { MIN_PASSWORD_LENGTH } from '@/lib/auth/password'
+
+function formatLoginError(message: string): string {
+  if (message.toLowerCase().includes('invalid login credentials')) {
+    return 'Incorrect email or password.'
+  }
+  return message
+}
+
+function clearReadonlyOnFocus(e: React.FocusEvent<HTMLInputElement>) {
+  e.currentTarget.removeAttribute('readonly')
+}
 
 export default function LoginPage() {
   const router = useRouter()
@@ -28,7 +40,7 @@ export default function LoginPage() {
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (authError) {
-      setError(authError.message)
+      setError(formatLoginError(authError.message))
       setLoading(false)
       return
     }
@@ -60,7 +72,7 @@ export default function LoginPage() {
         <CardTitle className="text-2xl font-semibold">{APP_NAME}</CardTitle>
         <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} autoComplete="off">
         <CardContent className="space-y-4">
           {error && (
             <Alert variant="destructive">
@@ -71,21 +83,30 @@ export default function LoginPage() {
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
+              name="email"
               type="email"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onFocus={clearReadonlyOnFocus}
+              readOnly
               required
+              autoComplete="off"
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
+              name="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onFocus={clearReadonlyOnFocus}
+              readOnly
               required
+              minLength={MIN_PASSWORD_LENGTH}
+              autoComplete="off"
             />
           </div>
         </CardContent>
